@@ -1,15 +1,4 @@
+(use-trait nft-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 
-;; tiny-market
-;; <add a description here>
+(define-constant contract-owner tx-sender)
 
-;; constants
-;;
-
-;; data maps and vars
-;;
-
-;; private functions
-;;
-
-;; public functions
-;;

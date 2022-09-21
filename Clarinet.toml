@@ -1,25 +1,11 @@
 [project]
-name = "tiny-markets"
-authors = []
-description = ""
-telemetry = true
-requirements = []
-boot_contracts = ["pox", "costs-v2", "bns"]
+name = "tiny-market"
 
-[project.cache_location]
-path = "./.requirements"
+[[project.requirements]]
+contract_id = "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait"
+
+[contracts.sip009-nft]
+path = "contracts/sip009-nft.clar"
+
 [contracts.tiny-market]
 path = "contracts/tiny-market.clar"
-
-[repl]
-costs_version = 2
-parser_version = 2
-
-[repl.analysis]
-passes = ["check_checker"]
-
-[repl.analysis.check_checker]
-strict = false
-trusted_sender = false
-trusted_caller = false
-callee_filter = false
