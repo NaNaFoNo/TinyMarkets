@@ -69,3 +69,16 @@
 (define-read-only (get-listing (listing-id uint))
 	(map-get? listings listing-id)
 )
+
+;; cancel listing
+(define-public (cancel-listing (listing-id uint) (nft-asset-contract <nft-trait>))
+	(let (
+		(listing (unwrap! (map-get? listings listing-id) err-unknown-listing))
+		(maker (get maker listing))
+		)
+		(asserts! (is-eq maker tx-sender) err-unauthorised)
+		(asserts! (is-eq (get nft-asset-contract listing) (contract-of nft-asset-contract)) err-nft-asset-mismatch)
+		(map-delete listings listing-id)
+		(as-contract (transfer-nft nft-asset-contract (get token-id listing) tx-sender maker))
+	)
+)
