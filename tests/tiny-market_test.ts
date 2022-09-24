@@ -221,3 +221,54 @@ Clarinet.test({
         block.receipts[2].events.expectSTXTransferEvent(order.price, taker.address, maker.address);
     }
 });
+
+// Basic fulfillment errors
+Clarinet.test({
+    name: "Cannot fulfil own listing",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order),
+            Tx.contractCall(contractName, 'fulfil-listing-stx', [types.uint(0), types.principal(nftAssetContract)], maker.address)
+        ]);
+        block.receipts[2].result.expectErr().expectUint(2005);
+        assertEquals(block.receipts[2].events.length, 0);
+    }
+});
+ 
+Clarinet.test({
+    name: "Cannot fulfil an unknown listing",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker, taker] = ['deployer', 'wallet_1', 'wallet_2'].map(name => accounts.get(name)!);
+        const { nftAssetContract } = mintNft({ chain, deployer, recipient: maker });
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            Tx.contractCall(contractName, 'fulfil-listing-stx', [types.uint(0), types.principal(nftAssetContract)], taker.address)
+        ])
+        block.receipts[1].result.expectErr().expectUint(2000);
+        assertEquals(block.receipts[1].events.length, 0);
+    }
+});
+ 
+Clarinet.test({
+    name: "Cannot fulfil an expired listing",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker, taker] = ['deployer', 'wallet_1', 'wallet_2'].map(name => accounts.get(name)!);
+        const expiry = 10;
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry, price: 10 };
+        chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order),
+        ]);
+        chain.mineEmptyBlockUntil(expiry + 1);
+        const block = chain.mineBlock([
+            Tx.contractCall(contractName, 'fulfil-listing-stx', [types.uint(0), types.principal(nftAssetContract)], taker.address)
+        ])
+        block.receipts[0].result.expectErr().expectUint(2002);
+        assertEquals(block.receipts[0].events.length, 0);
+    }
+});
