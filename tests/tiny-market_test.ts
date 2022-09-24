@@ -163,3 +163,43 @@ Clarinet.test({
         assertEquals(block.receipts[2].events.length, 0);
     }
 });
+
+// Retrieving Listings
+Clarinet.test({
+    name: "Can get listings that have not been cancelled",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order)
+        ]);
+        const listingIdUint = block.receipts[1].result.expectOk();
+        const receipt = chain.callReadOnlyFn(contractName, 'get-listing', [listingIdUint], deployer.address);
+        const listing: { [key: string]: string } = receipt.result.expectSome().expectTuple() as any;
+ 
+        listing['expiry'].expectUint(order.expiry);
+        listing['maker'].expectPrincipal(maker.address);
+        listing['payment-asset-contract'].expectNone();
+        listing['price'].expectUint(order.price);
+        listing['taker'].expectNone();
+        listing['nft-asset-contract'].expectPrincipal(nftAssetContract);
+        listing['token-id'].expectUint(tokenId);
+    }
+});
+ 
+Clarinet.test({
+    name: "Cannot get listings that have been cancelled or do not exist",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        chain.mineBlock([
+            listOrderTx(nftAssetContract, maker, order),
+            Tx.contractCall(contractName, 'cancel-listing', [types.uint(0), types.principal(nftAssetContract)], maker.address)
+        ]);
+        const receipts = [types.uint(0), types.uint(999)].map(listingId => chain.callReadOnlyFn(contractName, 'get-listing', [listingId], deployer.address));
+        receipts.map(receipt => receipt.result.expectNone());
+    }
+});
