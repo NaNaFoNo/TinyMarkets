@@ -203,3 +203,21 @@ Clarinet.test({
         receipts.map(receipt => receipt.result.expectNone());
     }
 });
+
+// Fulfill Listing
+Clarinet.test({
+    name: "Can fulfil an active listing with STX",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker, taker] = ['deployer', 'wallet_1', 'wallet_2'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order),
+            Tx.contractCall(contractName, 'fulfil-listing-stx', [types.uint(0), types.principal(nftAssetContract)], taker.address)
+        ]);
+        block.receipts[2].result.expectOk().expectUint(0);
+        assertNftTransfer(block.receipts[2].events[0], nftAssetContract, tokenId, contractPrincipal(deployer), taker.address);
+        block.receipts[2].events.expectSTXTransferEvent(order.price, taker.address, maker.address);
+    }
+});
