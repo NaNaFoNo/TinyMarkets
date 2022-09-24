@@ -61,6 +61,10 @@ const makeOrder = (order: Order) =>
 
 const whitelistAssetTx = (assetContract: string, whitelisted: boolean, contractOwner: Account) =>
     Tx.contractCall(contractName, 'set-whitelisted', [types.principal(assetContract), types.bool(whitelisted)], contractOwner.address);
+
+//  Listing an NFT
+const listOrderTx = (nftAssetContract: string, maker: Account, order: Order | string) =>
+    Tx.contractCall(contractName, 'list-asset', [types.principal(nftAssetContract), typeof order === 'string' ? order : makeOrder(order)], maker.address);
     
 
 
