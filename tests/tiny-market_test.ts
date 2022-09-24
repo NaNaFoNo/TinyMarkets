@@ -67,7 +67,7 @@ const listOrderTx = (nftAssetContract: string, maker: Account, order: Order | st
     Tx.contractCall(contractName, 'list-asset', [types.principal(nftAssetContract), typeof order === 'string' ? order : makeOrder(order)], maker.address);
     
 
-
+// Listing test
 Clarinet.test({
     name: "Can list an NFT for sale for STX",
     async fn(chain: Chain, accounts: Map<string, Account>) {
