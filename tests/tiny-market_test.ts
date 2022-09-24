@@ -68,26 +68,17 @@ const listOrderTx = (nftAssetContract: string, maker: Account, order: Order | st
     
 
 
-
 Clarinet.test({
-    name: "Ensure that <...>",
+    name: "Can list an NFT for sale for STX",
     async fn(chain: Chain, accounts: Map<string, Account>) {
-        let block = chain.mineBlock([
-            /* 
-             * Add transactions with: 
-             * Tx.contractCall(...)
-            */
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order)
         ]);
-        assertEquals(block.receipts.length, 0);
-        assertEquals(block.height, 2);
-
-        block = chain.mineBlock([
-            /* 
-             * Add transactions with: 
-             * Tx.contractCall(...)
-            */
-        ]);
-        assertEquals(block.receipts.length, 0);
-        assertEquals(block.height, 3);
-    },
+        block.receipts[1].result.expectOk().expectUint(0);
+        assertNftTransfer(block.receipts[1].events[0], nftAssetContract, tokenId, maker.address, contractPrincipal(deployer));
+    }
 });
