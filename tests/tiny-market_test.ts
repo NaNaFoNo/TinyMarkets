@@ -82,3 +82,51 @@ Clarinet.test({
         assertNftTransfer(block.receipts[1].events[0], nftAssetContract, tokenId, maker.address, contractPrincipal(deployer));
     }
 });
+
+// Invalid Listings
+Clarinet.test({
+    name: "Cannot list an NFT for sale if the expiry is in the past",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const expiry = 10;
+        const order: Order = { tokenId, expiry, price: 10 };
+        chain.mineEmptyBlockUntil(expiry + 1);
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order)
+        ]);
+        block.receipts[1].result.expectErr().expectUint(1000);
+        assertEquals(block.receipts[1].events.length, 0);
+    }
+});
+ 
+Clarinet.test({
+    name: "Cannot list an NFT for sale for nothing",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker] = ['deployer', 'wallet_1'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: maker });
+        const order: Order = { tokenId, expiry: 10, price: 0 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order)
+        ]);
+        block.receipts[1].result.expectErr().expectUint(1001);
+        assertEquals(block.receipts[1].events.length, 0);
+    }
+});
+ 
+Clarinet.test({
+    name: "Cannot list an NFT for sale that the sender does not own",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const [deployer, maker, taker] = ['deployer', 'wallet_1', 'wallet_2'].map(name => accounts.get(name)!);
+        const { nftAssetContract, tokenId } = mintNft({ chain, deployer, recipient: taker });
+        const order: Order = { tokenId, expiry: 10, price: 10 };
+        const block = chain.mineBlock([
+            whitelistAssetTx(nftAssetContract, true, deployer),
+            listOrderTx(nftAssetContract, maker, order)
+        ]);
+        block.receipts[1].result.expectErr().expectUint(1);
+        assertEquals(block.receipts[1].events.length, 0);
+    }
+});
