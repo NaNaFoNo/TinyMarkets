@@ -19,6 +19,42 @@ function mintNft({ chain, deployer, recipient, nftAssetContract = defaultNftAsse
     return { nftAssetContract: nftAssetContractPrincipal, nftAssetId, tokenId: nftMintEvent.value.substr(1), block };
 }
 
+interface Sip009NftTransferEvent {
+	type: string,
+	nft_transfer_event: {
+		asset_identifier: string,
+		sender: string,
+		recipient: string,
+		value: string
+	}
+}
+
+function assertNftTransfer(event: Sip009NftTransferEvent, nftAssetContract: string, tokenId: number, sender: string, recipient: string) {
+	assertEquals(typeof event, 'object');
+	assertEquals(event.type, 'nft_transfer_event');
+	assertEquals(event.nft_transfer_event.asset_identifier.substr(0, nftAssetContract.length), nftAssetContract);
+	// event.nft_transfer_event.sender.expectPrincipal(sender);
+	// event.nft_transfer_event.recipient.expectPrincipal(recipient);
+	// event.nft_transfer_event.value.expectUint(tokenId);
+}
+
+interface Order {
+    taker?: string,
+    tokenId: number,
+    expiry: number,
+    price: number,
+    paymentAssetContract?: string
+}
+ 
+const makeOrder = (order: Order) =>
+    types.tuple({
+        'taker': order.taker ? types.some(types.principal(order.taker)) : types.none(),
+        'token-id': types.uint(order.tokenId),
+        'expiry': types.uint(order.expiry),
+        'price': types.uint(order.price),
+        'payment-asset-contract': order.paymentAssetContract ? types.some(types.principal(order.paymentAssetContract)) : types.none(),
+    });
+
 
 
 Clarinet.test({
