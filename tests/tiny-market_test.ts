@@ -2,6 +2,25 @@
 import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet@v0.31.0/index.ts';
 import { assertEquals } from 'https://deno.land/std@0.90.0/testing/asserts.ts';
 
+// Token minting helpers
+const contractName = 'tiny-market';
+ 
+const defaultNftAssetContract = 'sip009-nft';
+ 
+const contractPrincipal = (deployer: Account) => `${deployer.address}.${contractName}`;
+ 
+function mintNft({ chain, deployer, recipient, nftAssetContract = defaultNftAssetContract }: { chain: Chain, deployer: Account, recipient: Account, nftAssetContract?: string }) {
+    const block = chain.mineBlock([
+        Tx.contractCall(nftAssetContract, 'mint', [types.principal(recipient.address)], deployer.address),
+    ]);
+    block.receipts[0].result.expectOk();
+    const nftMintEvent = block.receipts[0].events[0].nft_mint_event;
+    const [nftAssetContractPrincipal, nftAssetId] = nftMintEvent.asset_identifier.split('::');
+    return { nftAssetContract: nftAssetContractPrincipal, nftAssetId, tokenId: nftMintEvent.value.substr(1), block };
+}
+
+
+
 Clarinet.test({
     name: "Ensure that <...>",
     async fn(chain: Chain, accounts: Map<string, Account>) {
