@@ -38,6 +38,8 @@ function assertNftTransfer(event: Sip009NftTransferEvent, nftAssetContract: stri
 	// event.nft_transfer_event.value.expectUint(tokenId);
 }
 
+
+// Order tuple helper
 interface Order {
     taker?: string,
     tokenId: number,
@@ -45,7 +47,9 @@ interface Order {
     price: number,
     paymentAssetContract?: string
 }
- 
+
+
+// Whitelist transaction
 const makeOrder = (order: Order) =>
     types.tuple({
         'taker': order.taker ? types.some(types.principal(order.taker)) : types.none(),
@@ -54,6 +58,10 @@ const makeOrder = (order: Order) =>
         'price': types.uint(order.price),
         'payment-asset-contract': order.paymentAssetContract ? types.some(types.principal(order.paymentAssetContract)) : types.none(),
     });
+
+const whitelistAssetTx = (assetContract: string, whitelisted: boolean, contractOwner: Account) =>
+    Tx.contractCall(contractName, 'set-whitelisted', [types.principal(assetContract), types.bool(whitelisted)], contractOwner.address);
+    
 
 
 
